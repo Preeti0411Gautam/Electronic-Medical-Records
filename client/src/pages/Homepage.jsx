@@ -10,7 +10,7 @@ const HomePage = () => {
       <section className="bg-blue-100 text-black py-24 px-6 md:px-12">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold leading-tight">
-            Blockchain-Powered EMR
+            Blockchain-Powered fyytyftyftyf
           </h1>
           <p className="text-lg md:text-2xl mt-4 mb-8">
             Secure, Transparent, and Accessible Medical Records Anytime, Anywhere
