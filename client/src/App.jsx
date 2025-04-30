@@ -14,6 +14,7 @@ import GrantPermission from "./components/Patient/GrantPermission";
 import DoctorRegistration from "./components/Doctor/DoctorRegistration";
 import DocLogin from "./components/Doctor/Login";
 import DoctorDashboard from "./components/Doctor/DoctorDashboard";
+import SearchBySpecialty from "./components/Hospital/SearchBySpecialty";
 const App = () => {
   return (
     <>
@@ -28,6 +29,7 @@ const App = () => {
         <Route path ="grant-permission" element={<GrantPermission/>}/>
         <Route path="/doctor-login" element={<DocLogin/>}/>
         <Route path="/doctor/:licenceNumber" element={<DoctorDashboard/>}/>
+        <Route path="search-doctors" element={<SearchBySpecialty/>}/>
         <Route
           path="patient/:hhNumber"
           element={

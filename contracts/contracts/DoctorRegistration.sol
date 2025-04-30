@@ -20,13 +20,26 @@ contract DoctorRegistration {
         string doctorName;
     }
 
+    struct AppointmentSlot {
+        string date;
+        string time;
+        bool isBooked;
+        address bookedBy;
+    }
+
     mapping(string => bool) public isDoctorRegistered;
     mapping(address => bool) public isDoctorRegisteredAddress;
     mapping(string => Doctor) public doctors;
     mapping(string => DoctorList[]) private Ppermission;
     mapping(string => mapping(string => bool)) public patientPermissions;
+    mapping(string => AppointmentSlot[]) public doctorSlots; // licenseNumber => slots
+    string[] public doctorLicenseNumbers; // for specialization search
 
     event DoctorRegistered(string licenseNumber, string name, address walletAddress);
+    event AppointmentSlotAdded(string licenseNumber, string date, string time);
+    event AppointmentBooked(string licenseNumber, uint slotIndex, address bookedBy);
+
+    // ================= Doctor Registration =====================
 
     function registerDoctor(
         address _walletAddress,
@@ -59,9 +72,12 @@ contract DoctorRegistration {
         doctors[_licenseNumber] = newDoctor;
         isDoctorRegistered[_licenseNumber] = true;
         isDoctorRegisteredAddress[_walletAddress] = true;
+        doctorLicenseNumbers.push(_licenseNumber);
 
         emit DoctorRegistered(_licenseNumber, _name, _walletAddress);
     }
+
+    // ================ Doctor Utilities =======================
 
     function isRegisteredDoctor(string memory _licenseNumber) external view returns (bool) {
         return isDoctorRegistered[_licenseNumber];
@@ -101,6 +117,8 @@ contract DoctorRegistration {
         );
     }
 
+    // ================ Access Permissions =======================
+
     function grantPermission(
         string memory _doctorNumber,
         string memory _patientNumber,
@@ -117,12 +135,10 @@ contract DoctorRegistration {
         }
 
         if (!exists) {
-            DoctorList memory newRecord = DoctorList(
-                _doctorNumber,
-                _doctorName
-            );
+            DoctorList memory newRecord = DoctorList(_doctorNumber, _doctorName);
             Ppermission[_patientNumber].push(newRecord);
         }
+
         patientPermissions[_doctorNumber][_patientNumber] = true;
     }
 
@@ -132,5 +148,63 @@ contract DoctorRegistration {
 
     function getDoctorList(string memory _patientNumber) public view returns (DoctorList[] memory) {
         return Ppermission[_patientNumber];
+    }
+
+    // =================== Specialization Search =======================
+
+    function getDoctorsBySpecialization(string memory _specialization) public view returns (Doctor[] memory) {
+        uint count = 0;
+
+        for (uint i = 0; i < doctorLicenseNumbers.length; i++) {
+            if (keccak256(bytes(doctors[doctorLicenseNumbers[i]].specialization)) == keccak256(bytes(_specialization))) {
+                count++;
+            }
+        }
+
+        Doctor[] memory filteredDoctors = new Doctor[](count);
+        uint index = 0;
+        for (uint i = 0; i < doctorLicenseNumbers.length; i++) {
+            if (keccak256(bytes(doctors[doctorLicenseNumbers[i]].specialization)) == keccak256(bytes(_specialization))) {
+                filteredDoctors[index++] = doctors[doctorLicenseNumbers[i]];
+            }
+        }
+
+        return filteredDoctors;
+    }
+
+    // ================= Appointments =======================
+
+    function addAppointmentSlot(
+        string memory _licenseNumber,
+        string memory _date,
+        string memory _time
+    ) public {
+        require(isDoctorRegistered[_licenseNumber], "Doctor not registered");
+        require(doctors[_licenseNumber].walletAddress == msg.sender, "Only doctor can add slots");
+
+        AppointmentSlot memory newSlot = AppointmentSlot({
+            date: _date,
+            time: _time,
+            isBooked: false,
+            bookedBy: address(0)
+        });
+
+        doctorSlots[_licenseNumber].push(newSlot);
+        emit AppointmentSlotAdded(_licenseNumber, _date, _time);
+    }
+
+    function getAppointmentSlots(string memory _licenseNumber) public view returns (AppointmentSlot[] memory) {
+        return doctorSlots[_licenseNumber];
+    }
+
+    function bookAppointment(string memory _licenseNumber, uint slotIndex) public {
+        require(slotIndex < doctorSlots[_licenseNumber].length, "Invalid slot index");
+        AppointmentSlot storage slot = doctorSlots[_licenseNumber][slotIndex];
+        require(!slot.isBooked, "Slot already booked");
+
+        slot.isBooked = true;
+        slot.bookedBy = msg.sender;
+
+        emit AppointmentBooked(_licenseNumber, slotIndex, msg.sender);
     }
 }
